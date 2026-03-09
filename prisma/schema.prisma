@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  clerkId       String    @unique
+  email         String    @unique
+  name          String?
+  image         String?
+  tier          Tier      @default(FREE)
+  submissions   Int       @default(0)
+  dailyCount    Int       @default(0)
+  lastReset     DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  verdicts      Verdict[]
+  appeals       Appeal[]
+  payments      Payment[]
+  
+  @@map("users")
+}
+
+model Verdict {
+  id            String    @id @default(cuid())
+  userId        String
+  submission    String
+  category      String
+  tone          String
+  score         Int
+  rank          String
+  strengths     String[]
+  weaknesses    String[]
+  finalRuling   String
+  shareToken    String    @unique @default(cuid())
+  isPublic      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  
+  user          User      @relation(fields: [userId], references: [id])
+  appeal        Appeal?
+  
+  @@map("verdicts")
+}
+
+model Appeal {
+  id            String    @id @default(cuid())
+  verdictId     String    @unique
+  userId        String
+  reason        String
+  status        AppealStatus @default(PENDING)
+  response      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  verdict       Verdict   @relation(fields: [verdictId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+  
+  @@map("appeals")
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  userId        String
+  stripeId      String    @unique
+  amount        Int
+  currency      String    @default("usd")
+  status        String
+  tier          Tier
+  createdAt     DateTime  @default(now())
+  
+  user          User      @relation(fields: [userId], references: [id])
+  
+  @@map("payments")
+}
+
+enum Tier {
+  FREE
+  CASUAL
+  PRO
+  TEAM
+}
+
+enum AppealStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
